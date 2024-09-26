@@ -27,7 +27,7 @@ on:
         description: 'Dry run'
         required: false
         type: string
-        default: ''
+        default: 'y'
 
 env:
   IS_STABLE: ${{ ! contains(inputs.version, '-') }}
@@ -302,6 +302,11 @@ jobs:
           pwsh build-ubuntu.ps1 -Repo $DOCKER_REPO -Arch ${{ matrix.arch }}
         working-directory: docker
 
+      - name: Docker Scout
+        uses: docker/scout-action@v1
+        with:
+          command: cves
+
       - name: Publish package
         run: |
           pwsh publish-ubuntu.ps1 -Repo $DOCKER_REPO -Arch ${{ matrix.arch }}
@@ -365,6 +370,11 @@ jobs:
         run: |
           & .\build-nanoserver.ps1 -Repo ${{ env.DOCKER_REPO }} -WinVer ${{ matrix.data.winVer }}
         working-directory: docker
+
+      - name: Docker Scout
+        uses: docker/scout-action@v1
+        with:
+          command: cves
 
       - name: Publish package
         shell: pwsh
