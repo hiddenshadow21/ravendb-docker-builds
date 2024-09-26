@@ -41,8 +41,8 @@ jobs:
     name: Build DEB package
     strategy:
       matrix:
-        arch: [ x64, arm32v7, arm64v8 ]
-        ubuntuName: [focal, jammy] #, noble ]
+        arch: [ x64 ] #, arm32v7, arm64v8 ]
+        ubuntuName: [ noble ] #[focal, jammy] #, noble ]
       fail-fast: false
     runs-on: ubuntu-latest
     steps:
@@ -234,7 +234,7 @@ jobs:
     name: Build Linux Docker image
     strategy:
       matrix:
-        arch: [ x64, arm32v7, arm64v8 ]
+        arch: [ x64 ] #, arm32v7, arm64v8 ]
       fail-fast: false
     runs-on: ubuntu-latest
     needs: debPackage
