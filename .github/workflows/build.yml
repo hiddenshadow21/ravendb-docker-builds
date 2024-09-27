@@ -305,10 +305,9 @@ jobs:
       - name: Docker Scout
         uses: docker/scout-action@v1
         with:
-          command: compare
-          image: local://
-          to: "registry://${{ env.DOCKER_REPO }}:${{ env.RAVEN_MAJOR_MINOR }}-latest"
-          exit-on: vulnerability
+          command: cves
+          exit-code: true
+          only-severities: critical, high
 
       - name: Publish package
         run: |
@@ -377,10 +376,9 @@ jobs:
       - name: Docker Scout
         uses: docker/scout-action@v1
         with:
-          command: compare
-          image: local://
-          to: "registry://${{ env.DOCKER_REPO }}:${{ env.RAVEN_MAJOR_MINOR }}-latest"
-          exit-on: vulnerability
+          command: cves
+          exit-code: true
+          only-severities: critical, high
 
       - name: Publish package
         shell: pwsh
