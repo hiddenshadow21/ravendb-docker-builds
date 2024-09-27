@@ -306,7 +306,8 @@ jobs:
         uses: docker/scout-action@v1
         with:
           command: compare
-          to: registry://
+          image: local://
+          to: "registry://${{ env.DOCKER_REPO }}:${{ env.RAVEN_MAJOR_MINOR }}-latest"
           exit-on: vulnerability
 
       - name: Publish package
@@ -377,7 +378,8 @@ jobs:
         uses: docker/scout-action@v1
         with:
           command: compare
-          to: registry://
+          image: local://
+          to: "registry://${{ env.DOCKER_REPO }}:${{ env.RAVEN_MAJOR_MINOR }}-latest"
           exit-on: vulnerability
 
       - name: Publish package
