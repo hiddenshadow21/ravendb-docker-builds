@@ -306,7 +306,8 @@ jobs:
         uses: docker/scout-action@v1
         with:
           command: compare
-          exit-code: true
+          to: registry://
+          exit-on: vulnerability
 
       - name: Publish package
         run: |
@@ -375,7 +376,9 @@ jobs:
       - name: Docker Scout
         uses: docker/scout-action@v1
         with:
-          command: cves
+          command: compare
+          to: registry://
+          exit-on: vulnerability
 
       - name: Publish package
         shell: pwsh
