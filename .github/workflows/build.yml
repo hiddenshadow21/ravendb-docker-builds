@@ -305,7 +305,8 @@ jobs:
       - name: Docker Scout
         uses: docker/scout-action@v1
         with:
-          command: cves
+          command: cves,compare
+          exit-code: true
 
       - name: Publish package
         run: |
