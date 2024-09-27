@@ -27,7 +27,7 @@ on:
         description: 'Dry run'
         required: false
         type: string
-        default: 'y'
+        default: ''
 
 env:
   IS_STABLE: ${{ ! contains(inputs.version, '-') }}
