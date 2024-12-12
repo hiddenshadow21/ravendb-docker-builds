@@ -1,0 +1,78 @@
+name: Build Deb & Docker images
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'RavenDB Version'
+        required: true
+        type: string
+      docker_user:
+        description: 'DockerHub username'
+        required: false
+        type: string
+        default: ravendb
+      github_repository:
+        description: 'Github repository'
+        required: false
+        type: string
+        default: ravendb/ravendb
+      deb_only:
+        description: 'Build deb packages only'
+        required: false
+        type: boolean
+        default: false
+      dry_run:
+        description: 'Dry run'
+        required: false
+        type: string
+        default: ''
+
+env:
+  IS_STABLE: ${{ ! contains(inputs.version, '-') }}
+  IS_NIGHTLY: ${{ contains(inputs.version, 'nightly') }}
+  DOCKER_USER: ${{ inputs.docker_user }}
+  DOCKER_REPO: '${{ inputs.docker_user }}/ravendb'
+  DRY_RUN: ${{ inputs.dry_run }}
+
+jobs:
+  debPackage:
+    uses: ./.github/workflows/build-deb.yml
+    with:
+      version: ${{ inputs.version }}
+      docker_user: ${{ inputs.docker_user }}
+      github_repository: ${{ inputs.github_repository }}
+      deb_only: ${{ inputs.deb_only }}
+      dry_run: ${{ inputs.dry_run }}
+    secrets: inherit
+
+  linux:
+    if: always() && inputs.deb_only == false
+    needs: debPackage
+    uses: ./.github/workflows/docker-build-linux.yml
+    with:
+      version: ${{ inputs.version }}
+      docker_user: ${{ inputs.docker_user }}
+      github_repository: ${{ inputs.github_repository }}
+      dry_run: ${{ inputs.dry_run }}
+    secrets: inherit
+
+  windows:
+    if: inputs.deb_only == false
+    uses: ./.github/workflows/docker-build-windows.yml
+    with:
+      version: ${{ inputs.version }}
+      docker_user: ${{ inputs.docker_user }}
+      github_repository: ${{ inputs.github_repository }}
+      dry_run: ${{ inputs.dry_run }}
+    secrets: inherit
+
+  multiarch:
+    needs: [linux, windows]
+    if: inputs.deb_only == false
+    uses: ./.github/workflows/docker-create-multiarch.yml
+    with:
+      version: ${{ inputs.version }}
+      docker_user: ${{ inputs.docker_user }}
+      github_repository: ${{ inputs.github_repository }}
+      dry_run: ${{ inputs.dry_run }}
+    secrets: inherit

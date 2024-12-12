@@ -1,0 +1,101 @@
+name: Build Windows Docker images
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: 'RavenDB Version'
+        required: true
+        type: string
+      docker_user:
+        description: 'DockerHub username'
+        required: false
+        type: string
+        default: ravendb
+      github_repository:
+        description: 'Github repository'
+        required: false
+        type: string
+        default: ravendb/ravendb
+      deb_only:
+        description: 'Build deb packages only'
+        required: false
+        type: boolean
+        default: false
+      dry_run:
+        description: 'Dry run'
+        required: false
+        type: string
+        default: ''
+
+env:
+  IS_STABLE: ${{ ! contains(inputs.version, '-') }}
+  IS_NIGHTLY: ${{ contains(inputs.version, 'nightly') }}
+  DOCKER_USER: ${{ inputs.docker_user }}
+  DOCKER_REPO: '${{ inputs.docker_user }}/ravendb'
+  DRY_RUN: ${{ inputs.dry_run }}
+
+jobs:
+  windowsDockerImageBuilder:
+    name: Matrix Creator for Windows
+    runs-on: ubuntu-latest
+    if: inputs.deb_only == false
+    outputs:
+      matrix: ${{ steps.create.outputs.matrix }}
+    steps:
+      - name: Create Matrix
+        id: create
+        run: |
+          v=$(echo ${{ inputs.version }} | cut -d. -f1,2)
+          if [[ "$v" < "5.4" ]]; then
+            echo "matrix=[ { \"os\": \"2019\", \"winVer\": \"1809\"} ]" >> "$GITHUB_OUTPUT"
+          else
+            echo "matrix=[ { \"os\": \"2019\", \"winVer\": \"1809\"}, { \"os\": \"2022\", \"winVer\": \"ltsc2022\"} ]" >> "$GITHUB_OUTPUT"
+          fi
+
+  windows:
+    needs: windowsDockerImageBuilder
+    name: Build Windows Docker images
+    strategy:
+      matrix:
+        data: ${{ fromJson(needs.windowsDockerImageBuilder.outputs.matrix) }}
+      fail-fast: false
+    runs-on: windows-${{ matrix.data.os }}
+    if: inputs.deb_only == false
+    steps:
+      - name: Get ravendb majorminor version & set repo
+        shell: bash
+        run: |
+          v=$(echo ${{ inputs.version }} | cut -d. -f1,2)
+          echo "RAVEN_MAJOR_MINOR=$v" >> $GITHUB_ENV
+          [[ ${{ env.IS_NIGHTLY }} == true ]] && DOCKER_REPO="$DOCKER_REPO-nightly"
+          echo "DOCKER_REPO=$DOCKER_REPO" >> $GITHUB_ENV
+
+      - name: Login to docker
+        shell: pwsh
+        run: |
+          docker login -u ${{ env.DOCKER_USER }} -p ${{ secrets.DOCKER_HUB_PASSWORD }}
+
+      - uses: actions/checkout@v3
+        with:
+          repository: '${{ inputs.github_repository }}'
+          ref: "v${{ env.RAVEN_MAJOR_MINOR }}"
+
+      - name: Download package
+        shell: pwsh
+        run: |
+          $downloadURL="https://daily-builds.s3.amazonaws.com/RavenDB-${{ inputs.version }}-windows-x64.zip"
+          mkdir artifacts
+          Invoke-WebRequest -Uri "$downloadURL" -OutFile "artifacts\RavenDB-${{ inputs.version }}-windows-x64.zip"
+
+      - name: Build image
+        shell: pwsh
+        run: |
+          & .\build-nanoserver.ps1 -Repo ${{ env.DOCKER_REPO }} -WinVer ${{ matrix.data.winVer }}
+        working-directory: docker
+
+      - name: Publish package
+        shell: pwsh
+        run: |
+          & .\publish-nanoserver.ps1 -Repo ${{ env.DOCKER_REPO }} -WinVer ${{ matrix.data.winVer }}
+          docker logout
+        working-directory: docker

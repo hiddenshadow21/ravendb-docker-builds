@@ -1,0 +1,113 @@
+name: Build Linux Docker images
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: 'RavenDB Version'
+        required: true
+        type: string
+      docker_user:
+        description: 'DockerHub username'
+        required: false
+        type: string
+        default: ravendb
+      github_repository:
+        description: 'Github repository'
+        required: false
+        type: string
+        default: ravendb/ravendb
+      deb_only:
+        description: 'Build deb packages only'
+        required: false
+        type: boolean
+        default: false
+      dry_run:
+        description: 'Dry run'
+        required: false
+        type: string
+        default: ''
+
+env:
+  IS_STABLE: ${{ ! contains(inputs.version, '-') }}
+  IS_NIGHTLY: ${{ contains(inputs.version, 'nightly') }}
+  DOCKER_USER: ${{ inputs.docker_user }}
+  DOCKER_REPO: '${{ inputs.docker_user }}/ravendb'
+  DRY_RUN: ${{ inputs.dry_run }}
+
+jobs:
+  linux:
+    name: Build Linux Docker image
+    strategy:
+      matrix:
+        arch: [ x64, arm32v7, arm64v8 ]
+      fail-fast: false
+    runs-on: ubuntu-latest
+    if: always() && inputs.deb_only == false
+    steps:
+      - name: Get ravendb majorminor version & set repo
+        run: |
+          v=$(echo ${{ inputs.version }} | cut -d. -f1,2)
+          echo "RAVEN_MAJOR_MINOR=$v" >> $GITHUB_ENV
+          [[ ${{ env.IS_NIGHTLY }} == true ]] && DOCKER_REPO="$DOCKER_REPO-nightly"
+          echo "DOCKER_REPO=$DOCKER_REPO" >> $GITHUB_ENV
+
+      - uses: actions/checkout@v3
+        with:
+          repository: '${{ inputs.github_repository }}'
+          ref: "v${{ env.RAVEN_MAJOR_MINOR }}"
+
+      - name: Get docker system
+        run: |
+          dockerSystem=$(grep -o -P "(?<=FROM\smcr\.microsoft\.com\/dotnet\/runtime-deps:\d\.\d-)([a-zA-Z]+)(?=.*)" Dockerfile.${{ matrix.arch }})
+          echo "DOCKER_SYSTEM=$dockerSystem" >> $GITHUB_ENV
+        working-directory: docker/ravendb-ubuntu
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: package-${{ env.DOCKER_SYSTEM }}-${{ matrix.arch }}
+          path: downloads
+
+      - name: Move deb to correct folder
+        run: |
+          chmod -v a+rw ravendb*.deb
+          mv -v ravendb*.deb ../docker/ravendb-ubuntu/
+        working-directory: downloads
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Build
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to docker
+        run: |
+          docker login -u ${{ env.DOCKER_USER }} -p ${{ secrets.DOCKER_HUB_PASSWORD }}
+
+      - name: Build image
+        run: |
+          case "${{ matrix.arch }}" in
+            "arm32v7")
+              downloadURL="https://daily-builds.s3.amazonaws.com/RavenDB-${{ inputs.version }}-raspberry-pi.tar.bz2"
+              ;;
+            "arm64v8")
+              downloadURL="https://daily-builds.s3.amazonaws.com/RavenDB-${{ inputs.version }}-linux-arm64.tar.bz2"
+              ;;
+
+            "x64")
+              downloadURL="https://daily-builds.s3.amazonaws.com/RavenDB-${{ inputs.version }}-linux-x64.tar.bz2"
+              ;;
+            *)
+              echo "Unsupported architecture"
+              exit 1
+              ;;
+          esac
+          wget -P "../artifacts" "$downloadURL"
+          
+          pwsh build-ubuntu.ps1 -Repo $DOCKER_REPO -Arch ${{ matrix.arch }}
+        working-directory: docker
+
+      - name: Publish package
+        run: |
+          pwsh publish-ubuntu.ps1 -Repo $DOCKER_REPO -Arch ${{ matrix.arch }}
+          docker logout
+        working-directory: docker
