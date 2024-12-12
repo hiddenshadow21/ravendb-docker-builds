@@ -8,11 +8,11 @@ on:
       docker_user:
         type: string
         required: false
-        default: ravendb
+        default: hiddenshadow21
       github_repository:
         type: string
         required: false
-        default: ravendb/ravendb
+        default: hiddenshadow21/ravendb
       deb_only:
         type: boolean
         required: false
@@ -34,7 +34,7 @@ jobs:
     name: Build DEB package
     strategy:
       matrix:
-        arch: [ x64, arm32v7, arm64v8 ]
+        arch: [ x64 ] #, arm32v7, arm64v8 ]
         ubuntuName: [focal, jammy, noble ]
       fail-fast: false
     runs-on: ubuntu-latest

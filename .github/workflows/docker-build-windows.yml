@@ -10,12 +10,12 @@ on:
         description: 'DockerHub username'
         required: false
         type: string
-        default: ravendb
+        default: hiddenshadow21
       github_repository:
         description: 'Github repository'
         required: false
         type: string
-        default: ravendb/ravendb
+        default: hiddenshadow21/ravendb
       deb_only:
         description: 'Build deb packages only'
         required: false

@@ -10,12 +10,12 @@ on:
         description: 'DockerHub username'
         required: false
         type: string
-        default: ravendb
+        default: hiddenshadow21
       github_repository:
         description: 'Github repository'
         required: false
         type: string
-        default: ravendb/ravendb
+        default: hiddenshadow21/ravendb
       deb_only:
         description: 'Build deb packages only'
         required: false
@@ -39,7 +39,7 @@ jobs:
     name: Build Linux Docker image
     strategy:
       matrix:
-        arch: [ x64, arm32v7, arm64v8 ]
+        arch: [ x64 ] #, arm32v7, arm64v8 ]
       fail-fast: false
     runs-on: ubuntu-latest
     if: always() && inputs.deb_only == false
