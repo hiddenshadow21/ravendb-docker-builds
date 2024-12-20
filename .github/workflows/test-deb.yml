@@ -18,7 +18,7 @@ jobs:
 
     strategy:
       matrix:
-        DISTRO_VERSION_NAME: ["focal", "jammy", "noble"]
+        DISTRO_VERSION_NAME: [focal, jammy] #, noble]
         arch: [x64, arm32v7, arm64v8]
   
     steps:
