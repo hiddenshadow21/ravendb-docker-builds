@@ -21,6 +21,15 @@ on:
         type: string
         required: false
         default: ''
+      RAVEN_MAJOR_MINOR:
+        type: string
+        required: true
+      IS_NIGHTLY:
+        type: boolean
+        required: true
+      IS_STABLE:
+        type: boolean
+        required: true
 
 jobs:
   extractDotnetMajorVersion:
@@ -37,6 +46,7 @@ jobs:
         run: |
           tar -xf RavenDB-${{ inputs.version }}-linux-x64.tar.bz2 RavenDB/runtime.txt
           major=$(grep "Runtime" RavenDB/runtime.txt | cut -d: -f2 | tr -d [:space:] | cut -d '.' -f1)
+          echo "major=$major"
           echo "major=$major" >> $GITHUB_OUTPUT
 
   debPackage:
@@ -47,23 +57,13 @@ jobs:
         ubuntuName: [focal, jammy] #, noble ]
         arch: [ x64, arm32v7,  arm64v8 ]
         isDotnet9:
-          - ${{ fromJSON(needs.extractMajorVersion.outputs.major) > 6 }}
+          - ${{ fromJSON(needs.extractDotnetMajorVersion.outputs.major) == 9 }}
         exclude:
           - isDotnet9: true
             ubuntuName: focal
       fail-fast: false
     runs-on: ubuntu-latest
     steps:
-      - name: Get ravendb majorminor version, build type & set repo
-        run: |
-          v=$(echo ${{ inputs.version }} | cut -d. -f1,2)
-          echo "RAVEN_MAJOR_MINOR=$v" >> $GITHUB_ENV
-          [[ ${{ env.IS_NIGHTLY }} == true ]] && DOCKER_REPO="$DOCKER_REPO-nightly"
-          echo "DOCKER_REPO=$DOCKER_REPO" >> $GITHUB_ENV
-          buildType=$(echo ${{ inputs.version }} | cut -d- -f2)
-          echo "TRIGGERING_BUILD_TYPE=$buildType" >> $GITHUB_ENV
-          echo "Docker repository: $DOCKER_REPO; TRIGGERING_BUILD_TYPE: $buildType"
-
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
 
@@ -77,7 +77,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: '${{ inputs.github_repository }}'
-          ref: "v${{ env.RAVEN_MAJOR_MINOR }}"
+          ref: "v${{ inputs.RAVEN_MAJOR_MINOR }}"
           path: ravendb
 
       - name: Download tar package
@@ -106,13 +106,9 @@ jobs:
           case "${{ matrix.arch }}" in
             "arm32v7")
               tarName="RavenDB-${{ inputs.version }}-raspberry-pi.tar.bz2"
-              qemu="qemu-arm"
-              arch="armhf"
               ;;
             "arm64v8")
               tarName="RavenDB-${{ inputs.version }}-linux-arm64.tar.bz2"
-              qemu="qemu-aarch64"
-              arch="arm64"
               ;;
 
             "x64")
@@ -123,40 +119,11 @@ jobs:
               exit 1
               ;;
           esac
-          version=$(echo ${{ inputs.version }} | cut -d. -f1,2)
-          if [[ "$version" > "6.0" ]]; then
-            filePath="RavenDB/Server/Raven.Server"
-            tar -xvf $tarName $filePath
-            if [[ -z $qemu ]]; then
-              number=$(./$filePath --info | grep "Build" | cut -d" " -f2)
-            else
-              source ../set-ubuntu-${{ matrix.ubuntuName }}.sh
-              source ../set-raven-platform-${arch}.sh
-              export DEB_BUILD_ENV_IMAGE="ravendb-server-info-extractor_$DEB_ARCHITECTURE"
-              docker pull --platform $DOCKER_BUILDPLATFORM ubuntu:$DISTRO_VERSION
-              docker build \
-                --platform $DOCKER_BUILDPLATFORM \
-                --build-arg "DISTRO_VERSION=$DISTRO_VERSION" \
-                --build-arg "QEMU_ARCH=$QEMU_ARCH" \
-                -t $DEB_BUILD_ENV_IMAGE \
-                -f ../../../../../../current/Dockerfile .
-              docker run --rm \
-                --platform $DOCKER_BUILDPLATFORM \
-                -v "$(pwd):/output" \
-                $DEB_BUILD_ENV_IMAGE 
-
-              number=$(grep "Build" info.txt | cut -d" " -f2)
-            fi
-            echo "BUILD_NUMBER=$number" >> $GITHUB_ENV
-          else
-
-            filePath="RavenDB/Server/Raven.Server.dll"
-            tar -xvf $tarName $filePath
-            sudo apt install -y libimage-exiftool-perl
-            number=$(exiftool $filePath | grep 'File Version Number' | cut -d. -f 4)
-            echo "BUILD_NUMBER=$number" >> $GITHUB_ENV
-            echo "BUILD_NUMBER: $BUILD_NUMBER"
-          fi
+          filePath="RavenDB/Server/Raven.Server.dll"
+          tar -xvf $tarName $filePath
+          sudo apt install -y libimage-exiftool-perl
+          number=$(exiftool $filePath | grep 'File Version Number' | cut -d. -f 4)
+          echo "BUILD_NUMBER=$number" >> $GITHUB_ENV
         working-directory: ravendb/scripts/linux/pkg/deb/temp
 
       - name: Build deb package
@@ -215,10 +182,10 @@ jobs:
 
           PACKAGES_DIST_DIR=ravendb/scripts/linux/pkg/deb/dist
 
-          if [ "${{ env.IS_NIGHTLY }}" == "true" ]; then
+          if [ "${{ inputs.IS_NIGHTLY }}" == "true" ]; then
             NIGHTLY_VERSION_DATE_PART=$(echo ${{ inputs.version }} | cut -d- -f3,4)
             export BUILD_VERSION="$NIGHTLY_VERSION_DATE_PART-Nightly"
-          elif [ "${{ env.IS_STABLE }}" == "true" ]; then
+          elif [ "${{ inputs.IS_STABLE }}" == "true" ]; then
             export BUILD_VERSION="${{ env.BUILD_NUMBER }}"
           else
             export BUILD_VERSION="${{ env.BUILD_NUMBER }}-${{ env.TRIGGERING_BUILD_TYPE }}"

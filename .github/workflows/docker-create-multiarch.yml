@@ -1,6 +1,6 @@
 name: Build Windows Docker images
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
       version:
         description: 'RavenDB Version'

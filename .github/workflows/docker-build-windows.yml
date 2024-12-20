@@ -1,6 +1,6 @@
 name: Build Windows Docker images
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
       version:
         description: 'RavenDB Version'
@@ -26,6 +26,15 @@ on:
         required: false
         type: string
         default: ''
+      RAVEN_MAJOR_MINOR:
+        type: string
+        required: true
+      IS_NIGHTLY:
+        type: boolean
+        required: true
+      DOCKER_REPO:
+        type: string
+        required: true
 
 jobs:
   windowsDockerImageBuilder:
@@ -55,23 +64,15 @@ jobs:
     runs-on: windows-${{ matrix.data.os }}
     if: inputs.deb_only == false
     steps:
-      - name: Get ravendb majorminor version & set repo
-        shell: bash
-        run: |
-          v=$(echo ${{ inputs.version }} | cut -d. -f1,2)
-          echo "RAVEN_MAJOR_MINOR=$v" >> $GITHUB_ENV
-          [[ ${{ env.IS_NIGHTLY }} == true ]] && DOCKER_REPO="$DOCKER_REPO-nightly"
-          echo "DOCKER_REPO=$DOCKER_REPO" >> $GITHUB_ENV
-
       - name: Login to docker
         shell: pwsh
         run: |
-          docker login -u ${{ env.DOCKER_USER }} -p ${{ secrets.DOCKER_HUB_PASSWORD }}
+          docker login -u ${{ inputs.docker_user }} -p ${{ secrets.DOCKER_HUB_PASSWORD }}
 
       - uses: actions/checkout@v4
         with:
           repository: '${{ inputs.github_repository }}'
-          ref: "v${{ env.RAVEN_MAJOR_MINOR }}"
+          ref: "v${{ inputs.RAVEN_MAJOR_MINOR }}"
 
       - name: Download package
         shell: pwsh
@@ -83,12 +84,12 @@ jobs:
       - name: Build image
         shell: pwsh
         run: |
-          & .\build-nanoserver.ps1 -Repo ${{ env.DOCKER_REPO }} -WinVer ${{ matrix.data.winVer }}
+          & .\build-nanoserver.ps1 -Repo ${{ inputs.DOCKER_REPO }} -WinVer ${{ matrix.data.winVer }}
         working-directory: docker
 
       - name: Publish package
         shell: pwsh
         run: |
-          & .\publish-nanoserver.ps1 -Repo ${{ env.DOCKER_REPO }} -WinVer ${{ matrix.data.winVer }}
+          & .\publish-nanoserver.ps1 -Repo ${{ inputs.DOCKER_REPO }} -WinVer ${{ matrix.data.winVer }}
           docker logout
         working-directory: docker

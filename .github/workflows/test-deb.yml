@@ -10,7 +10,13 @@ on:
         type: string
         required: false
         default: hiddenshadow21/ravendb
+      RAVEN_MAJOR_MINOR:
+        type: string
+        required: true
 
+env:
+  IS_STABLE: ${{ ! contains(inputs.version, '-') }}
+  IS_NIGHTLY: ${{ contains(inputs.version, 'nightly') }}
 
 jobs:
   test-package:
@@ -22,10 +28,18 @@ jobs:
         arch: [x64, arm32v7, arm64v8]
   
     steps:
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Build
+        uses: docker/setup-buildx-action@v2
+
+      - uses: actions/checkout@v4
+
       - uses: actions/checkout@v4
         with:
           repository: '${{ inputs.github_repository }}'
-          ref: "v${{ env.RAVEN_MAJOR_MINOR }}"
+          ref: "v${{ inputs.RAVEN_MAJOR_MINOR }}"
           path: ravendb
 
       - name: Get docker system

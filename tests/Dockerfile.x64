@@ -1,7 +1,7 @@
 ARG DISTRO_VERSION_NAME
 FROM ubuntu:${DISTRO_VERSION_NAME}
 
-COPY test.sh /test.sh
+COPY start-test.sh /start-test.sh
 COPY ../ravendb/scripts/linux/pkg/deb/assets/test.sh /ravendb/test.sh
 COPY ../deb/* /deb
 
