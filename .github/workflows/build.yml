@@ -68,8 +68,8 @@ jobs:
     needs: extractDotnetMajorVersion
     strategy:
       matrix:
-        arch: [ x64, arm32v7,  arm64v8 ]
         ubuntuName: [focal, jammy, noble ]
+        arch: [ x64, arm32v7,  arm64v8 ]
         isDotnet9:
           - ${{ fromJSON(needs.extractDotnetMajorVersion.outputs.major) == 9 }}
         exclude:

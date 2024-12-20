@@ -72,3 +72,11 @@ jobs:
       docker_user: ${{ inputs.docker_user }}
       github_repository: ${{ inputs.github_repository }}
       dry_run: ${{ inputs.dry_run }}
+
+  testDeb:
+    needs: [debPackage]
+    if: always()
+    uses: ./.github/workflows/test-deb.yml
+    with:
+      version: ${{ inputs.version }}
+      github_repository: ${{ inputs.github_repository }}

@@ -1,0 +1,13 @@
+ARG QEMU_ARCH
+ARG DISTRO_VERSION_NAME
+FROM multiarch/qemu-user-static:x86_64-${QEMU_ARCH} as qemu
+FROM ubuntu:${DISTRO_VERSION_NAME} 
+
+ARG QEMU_ARCH
+COPY --from=qemu /usr/bin/qemu-${QEMU_ARCH}-static /usr/bin
+
+COPY start-test.sh /start-test.sh
+COPY ../ravendb/scripts/linux/pkg/deb/assets/test.sh /ravendb/test.sh
+COPY ../deb/* /deb
+
+CMD ./start-test.sh

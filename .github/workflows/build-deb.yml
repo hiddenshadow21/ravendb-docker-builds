@@ -23,23 +23,29 @@ on:
         default: ''
 
 jobs:
-  extractMajorVersion:
+  extractDotnetMajorVersion:
     runs-on: ubuntu-latest
     outputs:
-      major: ${{ steps.extract_version.outputs.major }}
+      major: ${{ steps.extract_dotnet_version.outputs.major }}
     steps:
-      - id: extract_version
+      - name: Download tar package
         run: |
-          major=$(echo "${{ inputs.version }}" | cut -d '.' -f1)
+          downloadURL="https://daily-builds.s3.amazonaws.com/RavenDB-${{ inputs.version }}-linux-x64.tar.bz2"
+          wget -q "$downloadURL"
+      - id: extract_dotnet_version
+        name: Extract dotnet version
+        run: |
+          tar -xf RavenDB-${{ inputs.version }}-linux-x64.tar.bz2 RavenDB/runtime.txt
+          major=$(grep "Runtime" RavenDB/runtime.txt | cut -d: -f2 | tr -d [:space:] | cut -d '.' -f1)
           echo "major=$major" >> $GITHUB_OUTPUT
 
   debPackage:
     name: Build DEB package
-    needs: extractMajorVersion
+    needs: extractDotnetMajorVersion
     strategy:
       matrix:
-        arch: [ x64, arm32v7,  arm64v8 ]
         ubuntuName: [focal, jammy, noble ]
+        arch: [ x64, arm32v7,  arm64v8 ]
         isDotnet9:
           - ${{ fromJSON(needs.extractMajorVersion.outputs.major) > 6 }}
         exclude:
@@ -64,11 +70,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           path: current
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           repository: '${{ inputs.github_repository }}'
           ref: "v${{ env.RAVEN_MAJOR_MINOR }}"
@@ -181,7 +187,7 @@ jobs:
           RAVENDB_VERSION: ${{ inputs.version }}
 
       - name: Upload deb package to artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: package-${{ matrix.ubuntuName }}-${{ matrix.arch }}
           path: ravendb/scripts/linux/pkg/deb/dist/${{ env.UBUNTU_VERSION }}/ravendb*.deb

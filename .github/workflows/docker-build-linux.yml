@@ -45,7 +45,7 @@ jobs:
           [[ ${{ env.IS_NIGHTLY }} == true ]] && DOCKER_REPO="$DOCKER_REPO-nightly"
           echo "DOCKER_REPO=$DOCKER_REPO" >> $GITHUB_ENV
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           repository: '${{ inputs.github_repository }}'
           ref: "v${{ env.RAVEN_MAJOR_MINOR }}"
@@ -56,7 +56,7 @@ jobs:
           echo "DOCKER_SYSTEM=$dockerSystem" >> $GITHUB_ENV
         working-directory: docker/ravendb-ubuntu
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: package-${{ env.DOCKER_SYSTEM }}-${{ matrix.arch }}
           path: downloads
