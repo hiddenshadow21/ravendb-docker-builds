@@ -35,13 +35,16 @@ jobs:
     name: Build DEB package
     strategy:
       matrix:
-        ubuntuName: [focal, jammy] #, noble]
+        ubuntuName: [focal, jammy, noble]
         arch: [x64, arm32v7, arm64v8]
         isDotnet9:
           - ${{ inputs.dotnet_major_version == 9 }}
         exclude:
           - isDotnet9: true
             ubuntuName: focal
+          - arch:
+              - x64
+              - arm32v7
       fail-fast: false
     runs-on: ubuntu-latest
     steps:
@@ -113,6 +116,9 @@ jobs:
 
       - name: Build deb package
         run: |
+          echo $'\n#\n#\n#\n#\n#\n#\n#'
+          lscpu
+          echo $'\n#\n#\n#\n#\n#\n#\n#'
           chmod a+x *.sh
           case "${{ matrix.arch }}" in
             "arm32v7")
