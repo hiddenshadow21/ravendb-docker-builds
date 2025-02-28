@@ -36,15 +36,13 @@ jobs:
     strategy:
       matrix:
         ubuntuName: [focal, jammy, noble]
-        arch: [x64, arm32v7, arm64v8]
+        arch: [arm64v8] #[x64, arm32v7, arm64v8]
         isDotnet9:
           - ${{ inputs.dotnet_major_version == 9 }}
         exclude:
           - isDotnet9: true
             ubuntuName: focal
-          - arch:
-              - x64
-              - arm32v7
+          - arch: [ x64, arm32v7 ]
       fail-fast: false
     runs-on: ubuntu-latest
     steps:
