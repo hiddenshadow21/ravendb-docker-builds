@@ -29,6 +29,11 @@ on:
         required: false
         type: string
         default: ''
+      use_version_tags_only:
+        description: 'Use version tags only'
+        required: false
+        type: boolean
+        default: false
 
 env:
   DRY_RUN: ${{ inputs.dry_run }}
@@ -97,12 +102,22 @@ jobs:
               ;;
           esac
           wget -P "../artifacts" "$downloadURL"
+
+          extraArgs=""
+          if [ "${{ inputs.use_version_tags_only }}" = "true" ]; then
+            extraArgs="-UseVersionTagsOnly"
+          fi
           
-          pwsh build-ubuntu.ps1 -Repo ${{ inputs.docker_repo }} -Arch ${{ matrix.arch }}
+          pwsh build-ubuntu.ps1 -Repo ${{ inputs.docker_repo }} -Arch ${{ matrix.arch }} $extraArgs
         working-directory: docker
 
       - name: Publish package
         run: |
-          pwsh publish-ubuntu.ps1 -Repo ${{ inputs.docker_repo }} -Arch ${{ matrix.arch }}
+          extraArgs=""
+          if [ "${{ inputs.use_version_tags_only }}" = "true" ]; then
+            extraArgs="-UseVersionTagsOnly"
+          fi
+
+          pwsh publish-ubuntu.ps1 -Repo ${{ inputs.docker_repo }} -Arch ${{ matrix.arch }} $extraArgs
           docker logout
         working-directory: docker
