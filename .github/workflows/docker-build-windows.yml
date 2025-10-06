@@ -29,6 +29,11 @@ on:
           required: false
           type: string
           default: ''
+      use_version_tags_only:
+        description: 'Use version tags only'
+        required: false
+        type: boolean
+        default: false
 
 env:
   DRY_RUN: ${{ inputs.dry_run }}
@@ -79,12 +84,22 @@ jobs:
       - name: Build image
         shell: pwsh
         run: |
-          & .\build-nanoserver.ps1 -Repo ${{ inputs.docker_repo }} -WinVer ${{ matrix.data.winVer }}
+          $cmd = ".\build-nanoserver.ps1 -Repo `"${{ inputs.docker_repo }}`" -WinVer `"${{ matrix.data.winVer }}`""
+          if ("${{ inputs.use_version_tags_only }}" -eq "true") {
+            $cmd += " -UseVersionTagsOnly"
+          }
+          Write-Host "Running: $cmd"
+          Invoke-Expression $cmd
         working-directory: docker
 
       - name: Publish package
         shell: pwsh
         run: |
-          & .\publish-nanoserver.ps1 -Repo ${{ inputs.docker_repo }} -WinVer ${{ matrix.data.winVer }}
+          $cmd = ".\publish-nanoserver.ps1 -Repo `"${{ inputs.docker_repo }}`" -WinVer `"${{ matrix.data.winVer }}`""
+          if ("${{ inputs.use_version_tags_only }}" -eq "true") {
+            $cmd += " -UseVersionTagsOnly"
+          }
+          Write-Host "Running: $cmd"
+          Invoke-Expression $cmd
           docker logout
         working-directory: docker

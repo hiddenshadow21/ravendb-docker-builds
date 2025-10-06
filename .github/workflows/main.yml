@@ -88,6 +88,7 @@ jobs:
       dry_run: ${{ inputs.dry_run }}
       docker_repo: ${{ needs.commonVars.outputs.docker_repo }}
       raven_major_minor: ${{ needs.commonVars.outputs.raven_major_minor }}
+      use_version_tags_only: ${{ needs.commonVars.outputs.is_stable == 'false' && needs.commonVars.outputs.is_nightly == 'false' }}
     secrets: inherit
 
   docker-windows:
@@ -101,11 +102,12 @@ jobs:
       dry_run: ${{ inputs.dry_run }}
       docker_repo: ${{ needs.commonVars.outputs.docker_repo }}
       raven_major_minor: ${{ needs.commonVars.outputs.raven_major_minor }}
+      use_version_tags_only: ${{ needs.commonVars.outputs.is_stable == 'false' && needs.commonVars.outputs.is_nightly == 'false' }}
     secrets: inherit
 
   docker-multiarch:
     needs: [commonVars, docker-linux, docker-windows]
-    if: always() && inputs.deb_only == false
+    if: always() && inputs.deb_only == false && (needs.commonVars.outputs.is_stable == 'true' || needs.commonVars.outputs.is_nightly == 'true')
     uses: ./.github/workflows/docker-create-multiarch.yml
     with:
       version: ${{ inputs.version }}
