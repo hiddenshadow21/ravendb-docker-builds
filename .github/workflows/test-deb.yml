@@ -25,10 +25,10 @@ jobs:
     strategy:
       matrix:
         ubuntuName: [focal, jammy, noble]
-        isDotnet9:
-          - ${{ inputs.dotnet_major_version == 9 }}
+        isDotnet9OrGreater:
+          - ${{ inputs.dotnet_major_version >= 9 }}
         exclude:
-          - isDotnet9: true
+          - isDotnet9OrGreater: true
             ubuntuName: focal
       fail-fast: false
 
@@ -72,10 +72,10 @@ jobs:
     strategy:
       matrix:
         ubuntuName: [focal, jammy, noble]
-        isDotnet9:
-          - ${{ inputs.dotnet_major_version == 9 }}
+        isDotnet9OrGreater:
+          - ${{ inputs.dotnet_major_version >= 9 }}
         exclude:
-          - isDotnet9: true
+          - isDotnet9OrGreater: true
             ubuntuName: focal
       fail-fast: false
 
