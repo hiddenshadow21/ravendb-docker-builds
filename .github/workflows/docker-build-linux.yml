@@ -54,7 +54,7 @@ jobs:
 
       - name: Get docker system
         run: |
-          dockerSystem=$(grep -o -P "(?<=FROM\smcr\.microsoft\.com\/dotnet\/runtime-deps:\d\.\d-)([a-zA-Z]+)(?=.*)" Dockerfile.${{ matrix.arch }})
+          dockerSystem=$(grep -oP 'FROM\smcr\.microsoft\.com/dotnet/runtime-deps:\d+\.\d-\K[a-zA-Z]+' Dockerfile.${{ matrix.arch }})
           echo "DOCKER_SYSTEM=$dockerSystem" >> $GITHUB_ENV
         working-directory: docker/ravendb-ubuntu
 
