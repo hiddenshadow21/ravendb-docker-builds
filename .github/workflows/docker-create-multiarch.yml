@@ -51,6 +51,6 @@ jobs:
       - name: Publish multiarch
         shell: pwsh
         run: |
-          & .\publish-multiarch.ps1 -Repo ${{ inputs.docker_repo }}
+          & .\publish-multiarch.ps1 -Repo ${{ inputs.docker_repo }} -Version "${{ inputs.version }}"
           docker logout
         working-directory: docker
